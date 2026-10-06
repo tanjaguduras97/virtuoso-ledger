@@ -111,6 +111,23 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
 .pill.paid.in{background:var(--in-soft);color:var(--in)}
 .pill.paid.out{background:var(--out-soft);color:var(--out)}
 .pill.pending{background:var(--warn-soft);color:var(--warn)}
+.ctag{display:inline-flex;align-items:center;gap:4px;border:0;border-radius:4px;padding:1px 7px;margin-left:8px;font-family:var(--font-m);font-size:11px;letter-spacing:.02em;cursor:pointer;white-space:nowrap;vertical-align:1px}
+.ctag.under{background:var(--warn-soft);color:var(--warn)}
+.ctag.over{background:var(--out-soft);color:var(--out)}
+.ctag.done{background:var(--soft);color:var(--muted)}
+.ctag:disabled{cursor:default}
+.carry-hint{font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:-4px}
+.carry-hint.under{color:var(--warn)} .carry-hint.over{color:var(--out)}
+.carry-list{display:flex;flex-direction:column}
+.carry-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 16px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.carry-item:last-child{border-bottom:0}
+.carry-item .what{display:flex;flex-direction:column;gap:2px;min-width:0}
+.carry-item .what strong{font-weight:600}
+.carry-item .what span{font-size:13px;color:var(--muted)}
+.carry-item .side{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end}
+.carry-item .amt{font-family:var(--font-m);font-size:14px}
+.due{font-family:var(--font-m);font-size:11px;letter-spacing:.06em;text-transform:uppercase;border-radius:4px;padding:2px 7px;background:var(--soft);color:var(--muted)}
+.due.now{background:var(--warn-soft);color:var(--warn)}
 .tag{font-family:var(--font-m);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:1px 6px;margin-left:6px}
 .acts{display:flex;gap:2px;justify-content:flex-end;white-space:nowrap}
 .empty{padding:36px 12px;text-align:center;color:var(--muted);display:flex;flex-direction:column;gap:6px;align-items:center}
@@ -170,6 +187,11 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
     <div class="kpi"><span class="kicker">Outstanding</span><span class="v num" id="kPend">—</span><span class="s" id="kPendS">&nbsp;</span></div>
   </section>
 
+  <section class="panel" id="carryPanel" aria-labelledby="carryTitle" hidden>
+    <div class="panel-head"><h2 id="carryTitle">Carry-overs</h2><span class="kicker">Paid more or less than due</span></div>
+    <div class="carry-list" id="carryList"></div>
+  </section>
+
   <div class="grid2">
     <section class="panel" aria-labelledby="formTitle">
       <div class="panel-head"><h2 id="formTitle">Add an entry</h2><button class="btn ghost" id="cancelEdit" type="button" hidden>Cancel edit</button></div>
@@ -183,22 +205,27 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
           <datalist id="partyList"></datalist>
         </label>
         <div class="row">
-          <label for="fAmount">Amount
+          <label for="fExpected"><span>Amount due <span class="hint">optional</span></span>
+            <input type="number" id="fExpected" min="0.01" step="0.01" inputmode="decimal" placeholder="Leave empty if paid in full">
+          </label>
+          <label for="fAmount"><span id="paidLabel">Amount received</span>
             <div class="amount-wrap"><input type="number" id="fAmount" required min="0.01" step="0.01" inputmode="decimal" placeholder="0.00"><select id="fCurrency" aria-label="Currency paid in"><option value="EUR">EUR</option><option value="USD">USD</option><option value="BAM">BAM</option><option value="GBP">GBP</option><option value="CHF">CHF</option></select></div>
           </label>
+        </div>
+        <div class="carry-hint" id="carryHint" hidden></div>
+        <div class="carry-hint" id="carrySuggest" hidden></div>
+        <div class="row">
           <label for="fDate">Date
             <input type="date" id="fDate" required>
-          </label>
-        </div>
-        <div class="row">
-          <label for="fCategory"><span id="catLabel">Service</span>
-            <input type="text" id="fCategory" list="catList" maxlength="60" placeholder="Optional">
-            <datalist id="catList"></datalist>
           </label>
           <label for="fStatus">Status
             <select id="fStatus"></select>
           </label>
         </div>
+        <label for="fCategory"><span id="catLabel">Service</span>
+          <input type="text" id="fCategory" list="catList" maxlength="60" placeholder="Optional">
+          <datalist id="catList"></datalist>
+        </label>
         <label for="fNote">Note <span class="hint">Invoice number, hours, period covered</span>
           <input type="text" id="fNote" maxlength="200" placeholder="e.g. INV-2026-014 · September retainer">
         </label>
@@ -301,6 +328,19 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
     const d = rateDate(e), a = rateOn(from,d), b = rateOn(to,d);
     return a && b ? Math.round(e.amount / a * b) : null;
   }
+  // ---------- carry-overs ----------
+  // Positive: paid less than due (balance still open). Negative: paid more than due.
+  const carryOf = e => (e.status==="paid" && e.expected) ? e.expected - e.amount : 0;
+  function nextMonth(iso){
+    const [y,m] = iso.split("-").map(Number); const d = new Date(y, m, 1);
+    return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
+  }
+  function carryText(e, c){
+    const amt = fmtC(Math.abs(c), cur(e)), mon = monthLabel(nextMonth(e.date), true).split(" ")[0];
+    if(e.type==="out") return c>0 ? `Underpaid by ${amt}. Add it to the ${mon} payout.` : `Overpaid by ${amt}. Deduct it from the ${mon} payout.`;
+    return c>0 ? `Paid ${amt} less than invoiced. Collect it in ${mon}.` : `Paid ${amt} more than invoiced. Credit it on the ${mon} invoice.`;
+  }
+  function openCarries(){ return entries.filter(e=>carryOf(e)!==0 && !e.carrySettled); }
   function rateNote(e){
     const from = cur(e), to = settings.currency, d = rateDate(e), a = rateOn(from,d), b = rateOn(to,d);
     if(!a || !b) return "Exchange rate not available";
@@ -357,8 +397,8 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
     if(!res.ok) throw new Error(res.status + " " + text.slice(0,200));
     return text ? JSON.parse(text) : null;
   }
-  const fromRow = r => ({id:r.id, type:r.type, party:r.party, amount:Number(r.amount), date:r.date, category:r.category||"", status:r.status, note:r.note||"", currency:r.currency||"EUR", createdAt:r.created_at, updatedAt:r.updated_at});
-  const toRow = e => ({type:e.type, party:e.party, amount:e.amount, date:e.date, category:e.category||null, status:e.status, note:e.note||null, currency:e.currency||"EUR"});
+  const fromRow = r => ({id:r.id, type:r.type, party:r.party, amount:Number(r.amount), date:r.date, category:r.category||"", status:r.status, note:r.note||"", currency:r.currency||"EUR", expected:r.expected==null?null:Number(r.expected), carrySettled:!!r.carry_settled, createdAt:r.created_at, updatedAt:r.updated_at});
+  const toRow = e => ({type:e.type, party:e.party, amount:e.amount, date:e.date, category:e.category||null, status:e.status, note:e.note||null, currency:e.currency||"EUR", expected:e.expected||null});
   let lastSig = "";
   async function refresh(){
     const [rows] = await Promise.all([
@@ -378,7 +418,13 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
   }
   async function run(action, okMsg){
     try{ await action(); if(okMsg) toast(okMsg); await refresh(); setBanner(""); return true; }
-    catch(e){ console.error(e); render(); setBanner("Couldn't save that change. Check your internet connection and try again.", true); return false; }
+    catch(e){
+      console.error(e); render();
+      setBanner(/column|schema cache/i.test(String(e && e.message))
+        ? "The database needs an update before this can be saved. In Supabase, run the latest lines at the end of schema.sql (SQL Editor → New query → Run)."
+        : "Couldn't save that change. Check your internet connection and try again.", true);
+      return false;
+    }
   }
   function saveFile(filename, text, type){
     const url = URL.createObjectURL(new Blob([text],{type}));
@@ -434,12 +480,15 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
     $("#partyLabel").textContent = t==="in" ? "Client" : "Team member";
     $("#fParty").placeholder = t==="in" ? "e.g. Nordlicht Studio" : "e.g. Ana Petrović";
     $("#catLabel").textContent = t==="in" ? "Service" : "Payment for";
+    $("#paidLabel").textContent = t==="in" ? "Amount received" : "Amount paid";
+    $("#fExpected").placeholder = t==="in" ? "Invoiced amount" : "Agreed amount";
     const cur = $("#fStatus").value;
     $("#fStatus").innerHTML = STATUS[t].map(([v,l])=>`<option value="${v}">${l}</option>`).join("");
     if(cur) $("#fStatus").value = cur;
     $("#catList").innerHTML = (t==="in"?SERVICES:PAYOUTS).map(s=>`<option value="${esc(s)}">`).join("");
     const names = [...new Set(entries.filter(e=>e.type===t).map(e=>e.party))].sort();
     $("#partyList").innerHTML = names.map(n=>`<option value="${esc(n)}">`).join("");
+    if(typeof updateCarryHints==="function") updateCarryHints();
   }
   function resetForm(){
     editingId = null;
@@ -450,12 +499,13 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
     $("#cancelEdit").hidden = true;
     setType(formType);
     $("#fCurrency").value = pick("ledger:lastCurrency", settings.currency);
+    carryIncluded = []; updateCarryHints();
   }
   function startEdit(id){
     const e = entries.find(x=>x.id===id); if(!e) return;
     editingId = id;
     setType(e.type);
-    $("#fParty").value = e.party; $("#fAmount").value = (e.amount/100).toFixed(2); $("#fCurrency").value = cur(e);
+    $("#fParty").value = e.party; $("#fAmount").value = (e.amount/100).toFixed(2); $("#fCurrency").value = cur(e); $("#fExpected").value = e.expected ? (e.expected/100).toFixed(2) : "";
     $("#fDate").value = e.date; $("#fCategory").value = e.category||"";
     $("#fStatus").value = e.status; $("#fNote").value = e.note||"";
     $("#formTitle").textContent = "Edit entry";
@@ -463,24 +513,68 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
     $("#cancelEdit").hidden = false;
     $("#entryForm").scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth", block:"center"});
     $("#fParty").focus({preventScroll:true});
+    carryIncluded = []; updateCarryHints();
   }
+
+  let carryIncluded = [];
+  function updateCarryHints(){
+    const amount = Math.round(parseFloat($("#fAmount").value)*100);
+    const expected = Math.round(parseFloat($("#fExpected").value)*100);
+    const c = $("#fCurrency").value;
+    const hint = $("#carryHint");
+    if(amount>0 && expected>0 && amount!==expected && $("#fStatus").value==="paid"){
+      const diff = expected - amount, date = $("#fDate").value || today();
+      hint.className = "carry-hint " + (diff>0 ? "under" : "over");
+      hint.textContent = carryText({type:formType, currency:c, date}, diff) + " It will show under Carry-overs.";
+      hint.hidden = false;
+    } else hint.hidden = true;
+    // Offer to fold earlier carry-overs for the same person into this entry
+    const party = $("#fParty").value.trim().toLowerCase();
+    const sug = $("#carrySuggest");
+    const open = party ? openCarries().filter(e=>e.type===formType && e.party.toLowerCase()===party && cur(e)===c && e.id!==editingId) : [];
+    if(!open.length){ sug.hidden = true; carryIncluded = []; return; }
+    const total = open.reduce((a,e)=>a+carryOf(e),0);
+    const months = [...new Set(open.map(e=>monthLabel(ym(e.date),true).split(" ")[0]))].join(", ");
+    const already = carryIncluded.length && open.every(e=>carryIncluded.includes(e.id));
+    sug.className = "carry-hint " + (total>0 ? "under" : "over");
+    sug.innerHTML = `<span>${esc(open[0].party)}: ${esc(fmtC(Math.abs(total), c))} ${total>0 ? (formType==="out"?"still owed":"still to collect") : "overpaid"} from ${esc(months)}.</span>` +
+      (already ? `<span>Included in amount due. Marked settled when you save.</span>`
+               : `<button class="btn" type="button" id="includeCarry">${total>0?"Add to":"Subtract from"} amount due</button>`);
+    sug.hidden = false;
+    const b = $("#includeCarry");
+    if(b) b.addEventListener("click", ()=>{
+      const base = Math.round(parseFloat($("#fExpected").value || $("#fAmount").value || "0")*100) || 0;
+      const next = base + total;
+      $("#fExpected").value = next>0 ? (next/100).toFixed(2) : "";
+      carryIncluded = open.map(e=>e.id);
+      updateCarryHints();
+    });
+  }
+  ["fAmount","fExpected","fParty","fDate"].forEach(id=>$("#"+id).addEventListener("input", updateCarryHints));
+  ["fCurrency","fStatus"].forEach(id=>$("#"+id).addEventListener("change", updateCarryHints));
 
   $("#entryForm").addEventListener("submit", async ev=>{
     ev.preventDefault();
     const amount = Math.round(parseFloat($("#fAmount").value)*100);
     const party = $("#fParty").value.trim();
     if(!party || !(amount>0) || !$("#fDate").value){ $("#formMsg").textContent="Fill in who, amount and date."; return; }
+    const expRaw = $("#fExpected").value.trim();
+    const expected = expRaw ? Math.round(parseFloat(expRaw)*100) : null;
+    if(expRaw && !(expected>0)){ $("#formMsg").textContent="Amount due must be more than 0, or leave it empty."; return; }
     const body = {
-      type: formType, party, amount, currency: $("#fCurrency").value, date: $("#fDate").value,
+      type: formType, party, amount, expected: expected && expected!==amount ? expected : null, currency: $("#fCurrency").value, date: $("#fDate").value,
       category: $("#fCategory").value.trim(), status: $("#fStatus").value,
       note: $("#fNote").value.trim(), updatedAt: new Date().toISOString()
     };
     if(!canWrite) return;
     const btn = $("#submitBtn"); btn.disabled = true; $("#formMsg").textContent = "Saving…";
     const id = editingId;
-    const ok = await run(()=> id
+    const settleIds = carryIncluded.slice();
+    const ok = await run(async ()=> { await (id
       ? api("/entries?id=eq."+encodeURIComponent(id), {method:"PATCH", body:Object.assign(toRow(body),{updated_at:body.updatedAt})})
-      : api("/entries", {method:"POST", body:toRow(body), headers:{Prefer:"return=minimal"}}),
+      : api("/entries", {method:"POST", body:toRow(body), headers:{Prefer:"return=minimal"}}));
+      for(const cid of settleIds) await api("/entries?id=eq."+encodeURIComponent(cid), {method:"PATCH", body:{carry_settled:true, updated_at:body.updatedAt}});
+    },
       id ? "Changes saved" : (formType==="in" ? "Client payment saved" : "Team payout saved"));
     btn.disabled = false;
     $("#formMsg").textContent = ok ? "" : "Not saved yet. Try again.";
@@ -496,6 +590,12 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
     const id = btn.dataset.id, act = btn.dataset.act;
     const e = entries.find(x=>x.id===id); if(!e) return;
     if(act==="edit") return startEdit(id);
+    if(act==="carry"){
+      if(!canWrite) return;
+      btn.disabled = true;
+      return run(()=>api("/entries?id=eq."+encodeURIComponent(id), {method:"PATCH", body:{carry_settled: !e.carrySettled, updated_at:new Date().toISOString()}}),
+        e.carrySettled ? "Carry-over reopened" : "Carry-over marked settled");
+    }
     if(act==="toggle"){
       if(!canWrite) return;
       btn.disabled = true;
@@ -549,9 +649,42 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
     $("#kOutS").textContent = outPaid.length + (outPaid.length===1?" payout":" payouts") + " to " + new Set(outPaid.map(e=>e.party)).size + " " + (new Set(outPaid.map(e=>e.party)).size===1?"person":"people");
     const n = $("#kNet"); n.textContent = fmt(net); n.className = "v num " + (net<0?"out":"");
     $("#kNetS").textContent = a>0 ? "Margin " + Math.round(net/a*100) + "%" : "No client income yet";
-    $("#kPend").textContent = fmt(sum(inPend)-sum(outPend));
-    $("#kPendS").textContent = "Awaiting " + fmt(sum(inPend),{short:1}) + " · owed " + fmt(sum(outPend),{short:1});
+    const short = t => list.filter(e=>e.type===t && !e.carrySettled && carryOf(e)>0).reduce((s,e)=>s+(val(Object.assign({},e,{amount:carryOf(e)}))||0),0);
+    const awaiting = sum(inPend) + short("in"), owed = sum(outPend) + short("out");
+    $("#kPend").textContent = fmt(awaiting-owed);
+    $("#kPendS").textContent = "Awaiting " + fmt(awaiting,{short:1}) + " · owed " + fmt(owed,{short:1});
   }
+
+  function carryTag(e){
+    const c = carryOf(e); if(!c) return "";
+    const mon = monthLabel(nextMonth(e.date));
+    const cls = e.carrySettled ? "done" : (c>0 ? "under" : "over");
+    const label = e.carrySettled ? "Carried over ✓" : `${c>0?"Underpaid":"Overpaid"} ${fmtC(Math.abs(c), cur(e), {short:1})} → ${mon}`;
+    const title = `Due ${fmtC(e.expected, cur(e))}, paid ${fmtC(e.amount, cur(e))}. ` + (e.carrySettled ? "Click to reopen." : "Click to mark settled.");
+    return `<button class="ctag ${cls}" data-act="carry" data-id="${esc(e.id)}" title="${esc(title)}" ${canWrite?"":"disabled"}>${esc(label)}</button>`;
+  }
+
+  function renderCarries(){
+    const open = openCarries().sort((a,b)=>(a.date||"").localeCompare(b.date||""));
+    $("#carryPanel").hidden = !open.length;
+    const now = ym(today());
+    $("#carryList").innerHTML = open.map(e=>{
+      const c = carryOf(e), target = nextMonth(e.date), due = target <= now;
+      return `<div class="carry-item">
+        <div class="what"><strong>${esc(e.party)} <span class="tag" style="margin-left:4px">${e.type==="in"?"Client":"Team"}</span></strong>
+          <span>${esc(monthLabel(ym(e.date),true))}: due ${esc(fmtC(e.expected,cur(e)))}, ${e.type==="in"?"received":"paid"} ${esc(fmtC(e.amount,cur(e)))}. ${esc(carryText(e,c))}</span></div>
+        <div class="side"><span class="due ${due?"now":""}">${due ? (target===now ? "This month" : "Overdue") : "For " + esc(monthLabel(target,true))}</span>
+          <span class="amt" style="color:${c>0?"var(--warn)":"var(--out)"}">${c>0?"+":"−"} ${esc(fmtC(Math.abs(c),cur(e)))}</span>
+          ${canWrite?`<button class="btn" data-act="carry" data-id="${esc(e.id)}">Mark settled</button>`:""}</div>
+      </div>`;
+    }).join("");
+  }
+  $("#carryList").addEventListener("click", ev=>{
+    const b = ev.target.closest("button[data-act=carry]"); if(!b || !canWrite) return;
+    const e = entries.find(x=>x.id===b.dataset.id); if(!e) return;
+    b.disabled = true;
+    run(()=>api("/entries?id=eq."+encodeURIComponent(e.id), {method:"PATCH", body:{carry_settled:true, updated_at:new Date().toISOString()}}), "Carry-over marked settled");
+  });
 
   function renderLedger(){
     const base = entries.filter(inPeriod);
@@ -568,10 +701,10 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
       const details = [e.category, e.note].filter(Boolean).map(esc).join(" · ");
       return `<tr>
         <td class="date">${esc(fmtDate(e.date))}</td>
-        <td><span class="who">${esc(e.party)}</span><div class="note">${e.type==="in"?"Client":"Team"}</div></td>
+        <td><span class="who">${esc(e.party)}</span>${carryTag(e)}<div class="note">${e.type==="in"?"Client":"Team"}</div></td>
         <td class="note">${details||"—"}</td>
         <td><button class="pill ${e.status} ${e.type}" data-act="toggle" data-id="${esc(e.id)}" title="Click to switch status" ${canWrite?"":"disabled"}>${esc(label)}</button></td>
-        <td class="amt ${e.type}">${sign} ${esc(fmtC(e.amount, cur(e)))}${cur(e)!==settings.currency ? `<span class="conv" title="${esc(rateNote(e))}">≈ ${val(e)==null ? "rate unavailable" : esc(fmt(val(e)))}</span>` : ""}</td>
+        <td class="amt ${e.type}">${sign} ${esc(fmtC(e.amount, cur(e)))}${e.expected ? `<span class="conv">due ${esc(fmtC(e.expected, cur(e)))}</span>` : ""}${cur(e)!==settings.currency ? `<span class="conv" title="${esc(rateNote(e))}">≈ ${val(e)==null ? "rate unavailable" : esc(fmt(val(e)))}</span>` : ""}</td>
         <td><div class="acts">${canWrite?`<button class="btn ghost" data-act="edit" data-id="${esc(e.id)}">Edit</button><button class="btn ghost" data-act="del" data-id="${esc(e.id)}">Delete</button>`:""}</div></td>
       </tr>`;
     }).join("");
@@ -647,7 +780,7 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
 
   function render(){
     const list = entries.filter(inPeriod);
-    renderKpis(list); renderLedger(); renderPeople(list); renderChart();
+    renderKpis(list); renderCarries(); renderLedger(); renderPeople(list); renderChart();
     $("#currency").value = settings.currency;
     const missing = entries.filter(e=>val(e)==null).length;
     const rb = $("#rateBanner");
@@ -659,8 +792,8 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
   $("#exportBtn").addEventListener("click", ()=>{
     const list = entries.filter(inPeriod).sort((a,b)=>(a.date||"").localeCompare(b.date||""));
     const q = v => '"' + String(v==null?"":v).replace(/"/g,'""') + '"';
-    const lines = [["Date","Type","Name","Service / payment for","Status","Amount","Currency","Amount in "+settings.currency,"Exchange rate","Note"].map(q).join(",")]
-      .concat(list.map(e=>[e.date, e.type==="in"?"Client payment":"Team payout", e.party, e.category, (STATUS[e.type].find(s=>s[0]===e.status)||["",e.status])[1], (e.type==="in"?1:-1)*e.amount/100, cur(e), val(e)==null ? "" : (e.type==="in"?1:-1)*val(e)/100, cur(e)===settings.currency ? "" : rateNote(e), e.note].map(q).join(",")));
+    const lines = [["Date","Type","Name","Service / payment for","Status","Amount","Currency","Amount due","Difference carried over","Carry-over settled","Amount in "+settings.currency,"Exchange rate","Note"].map(q).join(",")]
+      .concat(list.map(e=>[e.date, e.type==="in"?"Client payment":"Team payout", e.party, e.category, (STATUS[e.type].find(s=>s[0]===e.status)||["",e.status])[1], (e.type==="in"?1:-1)*e.amount/100, cur(e), e.expected ? e.expected/100 : "", carryOf(e) ? carryOf(e)/100 : "", carryOf(e) ? (e.carrySettled?"yes":"no") : "", val(e)==null ? "" : (e.type==="in"?1:-1)*val(e)/100, cur(e)===settings.currency ? "" : rateNote(e), e.note].map(q).join(",")));
     const label = period==="all" ? "all-time" : period.replace("y:","");
     saveFile(`virtuoso-ledger-${label}.csv`, "\ufeff" + lines.join("\r\n"), "text/csv;charset=utf-8");
     toast("CSV downloaded");

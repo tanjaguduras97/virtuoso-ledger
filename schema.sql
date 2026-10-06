@@ -10,6 +10,8 @@ create table if not exists public.entries (
   status      text   not null check (status in ('paid','pending')),
   note        text   check (char_length(note) <= 200),
   currency    text   not null default 'EUR' check (currency in ('EUR','USD','BAM','GBP','CHF')),
+  expected    bigint check (expected > 0),                  -- amount due, in cents; null = paid in full
+  carry_settled boolean not null default false,             -- difference between due and paid has been dealt with
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
@@ -39,3 +41,7 @@ grant select, insert, update        on public.settings to anon;
 alter table public.entries add column if not exists currency text not null default 'EUR';
 alter table public.entries drop constraint if exists entries_currency_check;
 alter table public.entries add constraint entries_currency_check check (currency in ('EUR','USD','BAM','GBP','CHF'));
+
+-- Added later: amount due vs. amount paid, and carry-over tracking. Safe to re-run.
+alter table public.entries add column if not exists expected bigint check (expected > 0);
+alter table public.entries add column if not exists carry_settled boolean not null default false;
