@@ -279,9 +279,11 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
       method: opts.method || "GET",
       headers: Object.assign({
         apikey: CFG.supabaseAnonKey,
-        Authorization: "Bearer " + CFG.supabaseAnonKey,
         "Content-Type": "application/json"
-      }, opts.headers || {}),
+      },
+      // Legacy "anon" keys are JWTs and also go in Authorization; new "sb_publishable_" keys must not.
+      /^eyJ/.test(CFG.supabaseAnonKey) ? {Authorization: "Bearer " + CFG.supabaseAnonKey} : {},
+      opts.headers || {}),
       body: opts.body ? JSON.stringify(opts.body) : undefined
     });
     const text = await res.text();
