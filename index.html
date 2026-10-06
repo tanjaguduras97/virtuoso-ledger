@@ -78,9 +78,9 @@ form{display:flex;flex-direction:column;gap:14px}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 label{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:500;min-width:0}
 label .hint{font-weight:400;color:var(--muted)}
-.amount-wrap{position:relative}
-.amount-wrap span{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-family:var(--font-m);font-size:13px;pointer-events:none}
-.amount-wrap input{padding-left:42px}
+.amount-wrap{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px}
+.amount-wrap select{width:auto;font-family:var(--font-m);font-size:13px}
+.conv{display:block;font-size:11.5px;color:var(--muted);margin-top:2px}
 .form-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .form-msg{font-size:13px;color:var(--muted)}
 
@@ -145,10 +145,10 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
       <label class="field-inline" for="period"><span class="kicker">Period</span>
         <select id="period"></select>
       </label>
-      <label class="field-inline" for="currency"><span class="kicker">Currency</span>
+      <label class="field-inline" for="currency"><span class="kicker">Show totals in</span>
         <select id="currency">
-          <option value="EUR">EUR €</option><option value="USD">USD $</option><option value="GBP">GBP £</option>
-          <option value="CHF">CHF</option><option value="RSD">RSD</option><option value="BAM">BAM KM</option>
+          <option value="EUR">EUR €</option><option value="USD">USD $</option><option value="BAM">BAM KM</option>
+          <option value="GBP">GBP £</option><option value="CHF">CHF</option>
         </select>
       </label>
       <div class="field-inline"><span class="kicker">&nbsp;</span>
@@ -162,6 +162,7 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
 
   <div class="banner" id="statusBanner"><span>Connecting to the ledger…</span></div>
 
+  <div class="banner warn" id="rateBanner" hidden></div>
   <section class="kpis" aria-label="Summary">
     <div class="kpi"><span class="kicker">Received from clients</span><span class="v in num" id="kIn">—</span><span class="s" id="kInS">&nbsp;</span></div>
     <div class="kpi"><span class="kicker">Paid to team</span><span class="v out num" id="kOut">—</span><span class="s" id="kOutS">&nbsp;</span></div>
@@ -183,7 +184,7 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
         </label>
         <div class="row">
           <label for="fAmount">Amount
-            <div class="amount-wrap"><span id="curSym">EUR</span><input type="number" id="fAmount" required min="0.01" step="0.01" inputmode="decimal" placeholder="0.00"></div>
+            <div class="amount-wrap"><input type="number" id="fAmount" required min="0.01" step="0.01" inputmode="decimal" placeholder="0.00"><select id="fCurrency" aria-label="Currency paid in"><option value="EUR">EUR</option><option value="USD">USD</option><option value="BAM">BAM</option><option value="GBP">GBP</option><option value="CHF">CHF</option></select></div>
           </label>
           <label for="fDate">Date
             <input type="date" id="fDate" required>
@@ -213,7 +214,7 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
         <div class="legend"><span><i style="background:var(--in)"></i>Received</span><span><i style="background:var(--out)"></i>Paid out</span><span><i style="background:var(--fg);height:2px;vertical-align:3px"></i>Net</span></div>
       </div>
       <div id="chart"></div>
-      <div class="kicker" style="text-transform:none;letter-spacing:.02em">Paid entries only. Pending invoices and payouts are counted under Outstanding.</div>
+      <div class="kicker" style="text-transform:none;letter-spacing:.02em">Paid entries only, converted at the ECB rate on each payment date. Pending amounts use today’s rate.</div>
     </section>
   </div>
 
@@ -265,7 +266,73 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
   };
 
   let entries = [];           // {id, type, party, amount (cents), date, category, status, note, createdAt, updatedAt}
-  let settings = {currency:"EUR"};
+  const CURRENCIES = ["EUR","USD","BAM","GBP","CHF"];
+  const pick = (k, d) => { try{ const v = localStorage.getItem(k); return CURRENCIES.includes(v) ? v : d; }catch(e){ return d; } };
+  const keep = (k, v) => { try{ localStorage.setItem(k, v); }catch(e){} };
+  let settings = {currency: pick("ledger:display","EUR")};
+
+  // ---------- exchange rates ----------
+  // ECB reference rates via Frankfurter (EUR base). BAM is pegged to EUR by law at 1.95583.
+  const PEG = {EUR:1, BAM:1.95583};
+  const ECB = ["USD","GBP","CHF"];
+  let rateDays = [], rateTable = {}, ratesFrom = "", ratesLoading = false, ratesFailed = false;
+  const cur = e => e.currency || "EUR";
+  function setRates(data){
+    rateTable = data.rates || {};
+    rateDays = Object.keys(rateTable).sort();
+  }
+  function rateDay(date){
+    if(!rateDays.length) return null;
+    if(date < rateDays[0]) return rateDays[0];
+    let lo=0, hi=rateDays.length-1;
+    while(lo<hi){ const mid=(lo+hi+1)>>1; if(rateDays[mid] <= date) lo=mid; else hi=mid-1; }
+    return rateDays[lo];
+  }
+  function rateOn(c, date){
+    if(PEG[c]) return PEG[c];
+    const d = rateDay(date); const r = d && rateTable[d] && rateTable[d][c];
+    return r || null;
+  }
+  const rateDate = e => e.status==="paid" ? e.date : today();
+  // Amount of entry e in the display currency (cents), or null if a rate is missing
+  function val(e){
+    const from = cur(e), to = settings.currency;
+    if(from===to) return e.amount;
+    const d = rateDate(e), a = rateOn(from,d), b = rateOn(to,d);
+    return a && b ? Math.round(e.amount / a * b) : null;
+  }
+  function rateNote(e){
+    const from = cur(e), to = settings.currency, d = rateDate(e), a = rateOn(from,d), b = rateOn(to,d);
+    if(!a || !b) return "Exchange rate not available";
+    const used = (PEG[from] && PEG[to]) ? "fixed rate" : "ECB rate of " + fmtDate(rateDay(d) || d);
+    return "1 " + from + " = " + (b/a).toFixed(4) + " " + to + " (" + used + ")";
+  }
+  async function loadRates(){
+    const minDate = entries.reduce((m,e)=> e.date && e.date < m ? e.date : m, today());
+    const from = (Number(minDate.slice(0,4)) - (minDate.slice(5,7)==="01" ? 1 : 0)) + "-01-01";
+    if(ratesLoading || (ratesFrom && ratesFrom <= from && !ratesFailed)) return;
+    const key = "ledger:rates:" + from;
+    try{
+      const c = JSON.parse(localStorage.getItem(key) || "null");
+      if(c && c.rates){ setRates(c); ratesFrom = from; render(); if(Date.now() - c.fetchedAt < 6*3600e3) return; }
+    }catch(e){}
+    ratesLoading = true;
+    const q = from + "..?base=EUR&symbols=" + ECB.join(",");
+    for(const base of ["https://api.frankfurter.dev/v1/", "https://api.frankfurter.app/"]){
+      try{
+        const res = await fetch(base + q);
+        if(!res.ok) continue;
+        const data = await res.json();
+        if(!data || !data.rates) continue;
+        setRates(data); ratesFrom = from; ratesFailed = false;
+        keep(key, JSON.stringify({rates:data.rates, fetchedAt:Date.now()}));
+        break;
+      }catch(e){}
+    }
+    ratesLoading = false;
+    if(!rateDays.length) ratesFailed = true;
+    render();
+  }
   let formType = "in", editingId = null, filter = "all", query = "", period = "all";
   let canWrite = false;
 
@@ -290,19 +357,18 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
     if(!res.ok) throw new Error(res.status + " " + text.slice(0,200));
     return text ? JSON.parse(text) : null;
   }
-  const fromRow = r => ({id:r.id, type:r.type, party:r.party, amount:Number(r.amount), date:r.date, category:r.category||"", status:r.status, note:r.note||"", createdAt:r.created_at, updatedAt:r.updated_at});
-  const toRow = e => ({type:e.type, party:e.party, amount:e.amount, date:e.date, category:e.category||null, status:e.status, note:e.note||null});
+  const fromRow = r => ({id:r.id, type:r.type, party:r.party, amount:Number(r.amount), date:r.date, category:r.category||"", status:r.status, note:r.note||"", currency:r.currency||"EUR", createdAt:r.created_at, updatedAt:r.updated_at});
+  const toRow = e => ({type:e.type, party:e.party, amount:e.amount, date:e.date, category:e.category||null, status:e.status, note:e.note||null, currency:e.currency||"EUR"});
   let lastSig = "";
   async function refresh(){
-    const [rows, st] = await Promise.all([
-      api("/entries?select=*&order=date.desc,created_at.desc&limit=5000"),
-      api("/settings?select=currency&id=eq.1")
+    const [rows] = await Promise.all([
+      api("/entries?select=*&order=date.desc,created_at.desc&limit=5000")
     ]);
-    if(st && st[0] && st[0].currency) settings.currency = st[0].currency;
-    const sig = JSON.stringify(rows) + settings.currency;
+    const sig = JSON.stringify(rows);
     if(sig===lastSig) return;
     lastSig = sig;
     entries = rows.map(fromRow);
+    loadRates();
     buildPeriods(); setType(formType); render();
   }
   function setBanner(msg, warn){
@@ -322,11 +388,12 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
   }
 
   // ---------- formatting ----------
-  function fmt(cents, opts){
+  function fmtC(cents, c, opts){
     const v = (cents||0)/100;
-    try { return new Intl.NumberFormat(undefined,{style:"currency",currency:settings.currency,maximumFractionDigits:2,minimumFractionDigits:opts&&opts.short?0:2}).format(v); }
-    catch(e){ return settings.currency+" "+v.toFixed(2); }
+    try { return new Intl.NumberFormat(undefined,{style:"currency",currency:c,currencyDisplay: c==="BAM"?"code":"symbol",maximumFractionDigits:opts&&opts.short?0:2,minimumFractionDigits:opts&&opts.short?0:2}).format(v); }
+    catch(e){ return c+" "+v.toFixed(2); }
   }
+  const fmt = (cents, opts) => fmtC(cents, settings.currency, opts);
   function fmtDate(iso){
     if(!iso) return "";
     const d = new Date(iso+"T00:00:00");
@@ -382,12 +449,13 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
     $("#submitBtn").textContent = "Save entry";
     $("#cancelEdit").hidden = true;
     setType(formType);
+    $("#fCurrency").value = pick("ledger:lastCurrency", settings.currency);
   }
   function startEdit(id){
     const e = entries.find(x=>x.id===id); if(!e) return;
     editingId = id;
     setType(e.type);
-    $("#fParty").value = e.party; $("#fAmount").value = (e.amount/100).toFixed(2);
+    $("#fParty").value = e.party; $("#fAmount").value = (e.amount/100).toFixed(2); $("#fCurrency").value = cur(e);
     $("#fDate").value = e.date; $("#fCategory").value = e.category||"";
     $("#fStatus").value = e.status; $("#fNote").value = e.note||"";
     $("#formTitle").textContent = "Edit entry";
@@ -403,7 +471,7 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
     const party = $("#fParty").value.trim();
     if(!party || !(amount>0) || !$("#fDate").value){ $("#formMsg").textContent="Fill in who, amount and date."; return; }
     const body = {
-      type: formType, party, amount, date: $("#fDate").value,
+      type: formType, party, amount, currency: $("#fCurrency").value, date: $("#fDate").value,
       category: $("#fCategory").value.trim(), status: $("#fStatus").value,
       note: $("#fNote").value.trim(), updatedAt: new Date().toISOString()
     };
@@ -416,7 +484,7 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
       id ? "Changes saved" : (formType==="in" ? "Client payment saved" : "Team payout saved"));
     btn.disabled = false;
     $("#formMsg").textContent = ok ? "" : "Not saved yet. Try again.";
-    if(ok){ const keepType = formType; resetForm(); setType(keepType); }
+    if(ok){ keep("ledger:lastCurrency", body.currency); const keepType = formType; resetForm(); setType(keepType); }
   });
   document.querySelectorAll(".seg button").forEach(b=>b.addEventListener("click",()=>setType(b.dataset.type)));
   $("#cancelEdit").addEventListener("click", resetForm);
@@ -463,12 +531,11 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
   $("#search").addEventListener("input", ev=>{ query = ev.target.value.trim().toLowerCase(); renderLedger(); });
   $("#period").addEventListener("change", ev=>{ period = ev.target.value; render(); });
   $("#currency").addEventListener("change", ev=>{
-    settings.currency = ev.target.value; render();
-    if(canWrite) run(()=>api("/settings", {method:"POST", body:{id:1, currency:settings.currency}, headers:{Prefer:"resolution=merge-duplicates,return=minimal"}}), "Currency updated");
+    settings.currency = ev.target.value; keep("ledger:display", settings.currency); render();
   });
 
   // ---------- render ----------
-  function sum(list){ return list.reduce((a,e)=>a+e.amount,0); }
+  function sum(list){ return list.reduce((a,e)=>a+(val(e)||0),0); }
 
   function renderKpis(list){
     const inPaid = list.filter(e=>e.type==="in"&&e.status==="paid");
@@ -504,7 +571,7 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
         <td><span class="who">${esc(e.party)}</span><div class="note">${e.type==="in"?"Client":"Team"}</div></td>
         <td class="note">${details||"—"}</td>
         <td><button class="pill ${e.status} ${e.type}" data-act="toggle" data-id="${esc(e.id)}" title="Click to switch status" ${canWrite?"":"disabled"}>${esc(label)}</button></td>
-        <td class="amt ${e.type}">${sign} ${esc(fmt(e.amount))}</td>
+        <td class="amt ${e.type}">${sign} ${esc(fmtC(e.amount, cur(e)))}${cur(e)!==settings.currency ? `<span class="conv" title="${esc(rateNote(e))}">≈ ${val(e)==null ? "rate unavailable" : esc(fmt(val(e)))}</span>` : ""}</td>
         <td><div class="acts">${canWrite?`<button class="btn ghost" data-act="edit" data-id="${esc(e.id)}">Edit</button><button class="btn ghost" data-act="del" data-id="${esc(e.id)}">Delete</button>`:""}</div></td>
       </tr>`;
     }).join("");
@@ -521,7 +588,7 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
       const map = new Map();
       list.filter(e=>e.type===type).forEach(e=>{
         const p = map.get(e.party) || {paid:0,pending:0,n:0,last:""};
-        p[e.status==="paid"?"paid":"pending"] += e.amount; p.n++; if((e.date||"")>p.last) p.last=e.date;
+        p[e.status==="paid"?"paid":"pending"] += (val(e)||0); p.n++; if((e.date||"")>p.last) p.last=e.date;
         map.set(e.party,p);
       });
       const rows = [...map.entries()].sort((a,b)=>(b[1].paid+b[1].pending)-(a[1].paid+a[1].pending));
@@ -581,16 +648,19 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
   function render(){
     const list = entries.filter(inPeriod);
     renderKpis(list); renderLedger(); renderPeople(list); renderChart();
-    $("#curSym").textContent = settings.currency;
     $("#currency").value = settings.currency;
+    const missing = entries.filter(e=>val(e)==null).length;
+    const rb = $("#rateBanner");
+    rb.hidden = !missing || ratesLoading;
+    rb.textContent = missing ? `Couldn't load exchange rates, so ${missing} ${missing===1?"entry":"entries"} in other currencies ${missing===1?"is":"are"} left out of the totals. Check your connection and reload.` : "";
   }
 
   // ---------- export ----------
   $("#exportBtn").addEventListener("click", ()=>{
     const list = entries.filter(inPeriod).sort((a,b)=>(a.date||"").localeCompare(b.date||""));
     const q = v => '"' + String(v==null?"":v).replace(/"/g,'""') + '"';
-    const lines = [["Date","Type","Name","Service / payment for","Status","Amount","Currency","Note"].map(q).join(",")]
-      .concat(list.map(e=>[e.date, e.type==="in"?"Client payment":"Team payout", e.party, e.category, (STATUS[e.type].find(s=>s[0]===e.status)||["",e.status])[1], (e.type==="in"?1:-1)*e.amount/100, settings.currency, e.note].map(q).join(",")));
+    const lines = [["Date","Type","Name","Service / payment for","Status","Amount","Currency","Amount in "+settings.currency,"Exchange rate","Note"].map(q).join(",")]
+      .concat(list.map(e=>[e.date, e.type==="in"?"Client payment":"Team payout", e.party, e.category, (STATUS[e.type].find(s=>s[0]===e.status)||["",e.status])[1], (e.type==="in"?1:-1)*e.amount/100, cur(e), val(e)==null ? "" : (e.type==="in"?1:-1)*val(e)/100, cur(e)===settings.currency ? "" : rateNote(e), e.note].map(q).join(",")));
     const label = period==="all" ? "all-time" : period.replace("y:","");
     saveFile(`virtuoso-ledger-${label}.csv`, "\ufeff" + lines.join("\r\n"), "text/csv;charset=utf-8");
     toast("CSV downloaded");
@@ -598,6 +668,7 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
 
   // ---------- boot ----------
   $("#fDate").value = today();
+  $("#fCurrency").value = pick("ledger:lastCurrency", settings.currency);
   setType("in");
   buildPeriods();
   render();
@@ -611,8 +682,9 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
       setBanner("Couldn't load the ledger. Check your internet connection, then reload the page.", true);
     });
     // Pick up entries other people add
-    setInterval(()=>{ if(!document.hidden && canWrite) refresh().catch(()=>{}); }, 20000);
-    document.addEventListener("visibilitychange", ()=>{ if(!document.hidden && canWrite) refresh().catch(()=>{}); });
+    const poll = ()=>{ if(!document.hidden && canWrite){ refresh().catch(()=>{}); if(ratesFailed) loadRates(); } };
+    setInterval(poll, 20000);
+    document.addEventListener("visibilitychange", poll);
   }
 })();
 </script>

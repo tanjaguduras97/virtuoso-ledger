@@ -9,6 +9,7 @@ create table if not exists public.entries (
   category    text   check (char_length(category) <= 60),
   status      text   not null check (status in ('paid','pending')),
   note        text   check (char_length(note) <= 200),
+  currency    text   not null default 'EUR' check (currency in ('EUR','USD','BAM','GBP','CHF')),
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
@@ -33,3 +34,8 @@ create policy "open access" on public.settings
 
 grant select, insert, update, delete on public.entries  to anon;
 grant select, insert, update        on public.settings to anon;
+
+-- Added later: the currency each entry was paid in. Safe to re-run.
+alter table public.entries add column if not exists currency text not null default 'EUR';
+alter table public.entries drop constraint if exists entries_currency_check;
+alter table public.entries add constraint entries_currency_check check (currency in ('EUR','USD','BAM','GBP','CHF'));

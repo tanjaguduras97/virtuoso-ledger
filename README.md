@@ -27,6 +27,7 @@ Entries are stored in a [Supabase](https://supabase.com) database, so everyone w
 
 ## Notes
 
-- Amounts are stored in cents. The currency setting is a label shared by everyone; it doesn't convert amounts.
+- Amounts are stored in cents, each in the currency it was paid in (EUR, USD, BAM, GBP or CHF).
+- "Show totals in" converts everything to one currency. Paid entries use the European Central Bank rate on the payment date (from frankfurter.dev); pending entries use the latest rate. BAM uses its fixed legal rate to EUR (1 EUR = 1.95583 BAM). Each person picks their own display currency.
 - The page checks for new entries every 20 seconds and when you switch back to its tab.
 - Search engines are asked not to index the page, but the link itself is not secret. Anyone it reaches can change the data.
