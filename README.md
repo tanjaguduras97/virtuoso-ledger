@@ -1,6 +1,6 @@
 # Virtuoso Ledger
 
-A one-page tracker for Virtuoso's money: client payments coming in and team payouts going out. It shows totals, outstanding amounts, a 6-month chart and per-person balances, and exports CSV.
+A one-page tracker for Virtuoso's money: invoices to clients, team payouts and business expenses (contributions, taxes, software, rent and so on). It shows totals and net profit, what's still outstanding, reminders for unpaid invoices and bills, a 6-month chart, per-person and per-category balances, and exports CSV.
 
 Entries are stored in a [Supabase](https://supabase.com) database, so everyone who opens the page sees and edits the same ledger from any device. There is **no login**: anyone with the link can read, add, edit and delete entries. Use **Back up** now and then to download a copy.
 
@@ -32,3 +32,5 @@ Entries are stored in a [Supabase](https://supabase.com) database, so everyone w
 - The page checks for new entries every 20 seconds and when you switch back to its tab.
 - Search engines are asked not to index the page, but the link itself is not secret. Anyone it reaches can change the data.
 - **Amount due vs. amount paid.** If an entry has an amount due that differs from what was paid, the difference is tagged in the ledger (e.g. "Underpaid €200 → Nov") and listed under **Carry-overs** as a reminder for the next month. Mark it settled there, or, when adding the next entry for the same person, use "Add to amount due" to fold it in; it is marked settled when that entry is saved. Open underpayments count toward Outstanding.
+- **Invoices.** Log an invoice with its number and due date and mark it *Not received yet*. It stays under **Reminders** (with an Overdue tag once the due date passes) until you click **Mark received**, which records the day the money arrived. Received invoices count toward income in the month the money arrived.
+- **Expenses.** Contributions, taxes and other business costs are their own entry type, grouped by category, and are subtracted in Net profit. An unpaid expense with a due date appears under Reminders a week before it's due.

@@ -2,7 +2,7 @@
 
 create table if not exists public.entries (
   id          uuid primary key default gen_random_uuid(),
-  type        text   not null check (type in ('in','out')),
+  type        text   not null check (type in ('in','out','expense')),   -- invoice / team payout / business expense
   party       text   not null check (char_length(party) between 1 and 80),
   amount      bigint not null check (amount > 0),          -- in cents
   date        date   not null,
@@ -12,6 +12,9 @@ create table if not exists public.entries (
   currency    text   not null default 'EUR' check (currency in ('EUR','USD','BAM','GBP','CHF')),
   expected    bigint check (expected > 0),                  -- amount due, in cents; null = paid in full
   carry_settled boolean not null default false,             -- difference between due and paid has been dealt with
+  invoice_no  text   check (char_length(invoice_no) <= 40),
+  due_date    date,
+  paid_date   date,                                         -- when an invoice was actually paid, if not the invoice date
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
@@ -45,3 +48,10 @@ alter table public.entries add constraint entries_currency_check check (currency
 -- Added later: amount due vs. amount paid, and carry-over tracking. Safe to re-run.
 alter table public.entries add column if not exists expected bigint check (expected > 0);
 alter table public.entries add column if not exists carry_settled boolean not null default false;
+
+-- Added later: business expenses and invoice tracking. Safe to re-run.
+alter table public.entries drop constraint if exists entries_type_check;
+alter table public.entries add constraint entries_type_check check (type in ('in','out','expense'));
+alter table public.entries add column if not exists invoice_no text check (char_length(invoice_no) <= 40);
+alter table public.entries add column if not exists due_date date;
+alter table public.entries add column if not exists paid_date date;

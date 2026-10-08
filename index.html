@@ -14,7 +14,7 @@
   --terra:#7a1f3d; --terra3:#b85070; --ink:#1a1410; --off:#faf8f5; --muted:#7d7067;
   --bg:#faf8f5; --surface:#ffffff; --line:#e9e2db; --soft:#f3eee8;
   --fg:#1a1410; --accent:#7a1f3d; --accent-ink:#ffffff;
-  --in:#2f6b4f; --in-soft:#e5f0e9; --out:#7a1f3d; --out-soft:#f6e6ec; --warn:#94600f; --warn-soft:#f8eedb;
+  --in:#2f6b4f; --in-soft:#e5f0e9; --exp:#7a6248; --exp-soft:#f1e9df; --out:#7a1f3d; --out-soft:#f6e6ec; --warn:#94600f; --warn-soft:#f8eedb;
   --font-d:"Fraunces",Georgia,"Times New Roman",serif;
   --font-b:"Outfit",system-ui,-apple-system,"Segoe UI",sans-serif;
   --font-m:"DM Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
@@ -22,11 +22,11 @@
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#16110f; --surface:#1f1916; --line:#382d28; --soft:#2a221e;
   --fg:#f3ece6; --muted:#a8998e; --accent:#d77e9c; --accent-ink:#1a1410;
-  --in:#7fc4a0; --in-soft:#1d3329; --out:#e58aa8; --out-soft:#3a1f29; --warn:#e2b25f; --warn-soft:#3a2d17; color-scheme:dark}}
+  --in:#7fc4a0; --in-soft:#1d3329; --exp:#cfae8a; --exp-soft:#33291f; --out:#e58aa8; --out-soft:#3a1f29; --warn:#e2b25f; --warn-soft:#3a2d17; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#16110f; --surface:#1f1916; --line:#382d28; --soft:#2a221e;
   --fg:#f3ece6; --muted:#a8998e; --accent:#d77e9c; --accent-ink:#1a1410;
-  --in:#7fc4a0; --in-soft:#1d3329; --out:#e58aa8; --out-soft:#3a1f29; --warn:#e2b25f; --warn-soft:#3a2d17; color-scheme:dark}
+  --in:#7fc4a0; --in-soft:#1d3329; --exp:#cfae8a; --exp-soft:#33291f; --out:#e58aa8; --out-soft:#3a1f29; --warn:#e2b25f; --warn-soft:#3a2d17; color-scheme:dark}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html{color-scheme:light}
@@ -58,7 +58,7 @@ select,input[type=text],input[type=number],input[type=date],input[type=search]{
 .banner{border:1px solid var(--line);background:var(--soft);border-radius:10px;padding:12px 16px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
 .banner.warn{background:var(--warn-soft);border-color:transparent;color:var(--warn)}
 
-.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid var(--line);border-radius:14px;background:var(--surface);overflow:hidden}
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border:1px solid var(--line);border-radius:14px;background:var(--surface);overflow:hidden}
 .kpi{padding:18px 20px;display:flex;flex-direction:column;gap:6px;border-left:1px solid var(--line);min-width:0}
 .kpi:first-child{border-left:0}
 .kpi .v{font-family:var(--font-d);font-size:clamp(22px,2.6vw,30px);font-weight:600;line-height:1.1;overflow-wrap:anywhere}
@@ -69,11 +69,12 @@ select,input[type=text],input[type=number],input[type=date],input[type=search]{
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:16px;min-width:0}
 .panel-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
 
-.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--soft);border-radius:10px;padding:4px;gap:4px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);background:var(--soft);border-radius:10px;padding:4px;gap:4px}
 .seg button{border:0;background:transparent;border-radius:7px;padding:9px 8px;cursor:pointer;font-weight:500;color:var(--muted)}
 .seg button[aria-pressed="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
 .seg button[data-type="in"][aria-pressed="true"]{color:var(--in)}
 .seg button[data-type="out"][aria-pressed="true"]{color:var(--out)}
+.seg button[data-type="expense"][aria-pressed="true"]{color:var(--exp)}
 form{display:flex;flex-direction:column;gap:14px}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 label{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:500;min-width:0}
@@ -102,7 +103,7 @@ td{padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
 tr:last-child td{border-bottom:0}
 td.amt,th.amt{text-align:right}
 td.amt{font-family:var(--font-m);font-size:14px;white-space:nowrap}
-td.amt.in{color:var(--in)} td.amt.out{color:var(--out)}
+td.amt.in{color:var(--in)} td.amt.out{color:var(--out)} td.amt.expense{color:var(--exp)}
 td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:nowrap}
 .who{font-weight:500}
 .note{font-size:13px;color:var(--muted)}
@@ -110,12 +111,14 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
 .pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
 .pill.paid.in{background:var(--in-soft);color:var(--in)}
 .pill.paid.out{background:var(--out-soft);color:var(--out)}
+.pill.paid.expense{background:var(--exp-soft);color:var(--exp)}
 .pill.pending{background:var(--warn-soft);color:var(--warn)}
 .ctag{display:inline-flex;align-items:center;gap:4px;border:0;border-radius:4px;padding:1px 7px;margin-left:8px;font-family:var(--font-m);font-size:11px;letter-spacing:.02em;cursor:pointer;white-space:nowrap;vertical-align:1px}
 .ctag.under{background:var(--warn-soft);color:var(--warn)}
 .ctag.over{background:var(--out-soft);color:var(--out)}
 .ctag.done{background:var(--soft);color:var(--muted)}
 .ctag:disabled{cursor:default}
+.kind{font-family:var(--font-m);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-left:6px}
 .carry-hint{font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:-4px}
 .carry-hint.under{color:var(--warn)} .carry-hint.over{color:var(--out)}
 .carry-list{display:flex;flex-direction:column}
@@ -133,7 +136,7 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
 .empty{padding:36px 12px;text-align:center;color:var(--muted);display:flex;flex-direction:column;gap:6px;align-items:center}
 .empty strong{font-family:var(--font-d);font-size:19px;color:var(--fg);font-weight:600}
 
-.people{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.people{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
 .plist{display:flex;flex-direction:column}
 .prow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:11px 0;border-bottom:1px solid var(--line);align-items:baseline}
 .prow:last-child{border-bottom:0}
@@ -147,8 +150,9 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
 .toast.show{opacity:1}
 @media (prefers-reduced-motion: reduce){.toast{transition:none}}
 
-@media (max-width:900px){.grid2{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}.kpi:nth-child(3){border-left:0}.kpi:nth-child(n+3){border-top:1px solid var(--line)}}
-@media (max-width:640px){.people{grid-template-columns:1fr}.row{grid-template-columns:1fr}.search{max-width:none;flex:1 1 100%}.wrap{padding-inline:16px}}
+@media (max-width:1060px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.kpi:nth-child(4){border-left:0}.kpi:nth-child(n+4){border-top:1px solid var(--line)}.people{grid-template-columns:1fr 1fr}}
+@media (max-width:900px){.grid2{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}.kpi:nth-child(n){border-left:1px solid var(--line);border-top:0}.kpi:nth-child(odd){border-left:0}.kpi:nth-child(n+3){border-top:1px solid var(--line)}.kpi:last-child{grid-column:1/-1}}
+@media (max-width:640px){.carry-item{grid-template-columns:1fr}.carry-item .side{justify-content:flex-start}.people{grid-template-columns:1fr}.row{grid-template-columns:1fr}.search{max-width:none;flex:1 1 100%}.wrap{padding-inline:16px}}
 </style>
 </head>
 <body>
@@ -183,12 +187,13 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
   <section class="kpis" aria-label="Summary">
     <div class="kpi"><span class="kicker">Received from clients</span><span class="v in num" id="kIn">—</span><span class="s" id="kInS">&nbsp;</span></div>
     <div class="kpi"><span class="kicker">Paid to team</span><span class="v out num" id="kOut">—</span><span class="s" id="kOutS">&nbsp;</span></div>
+    <div class="kpi"><span class="kicker">Expenses &amp; taxes</span><span class="v num" id="kExp" style="color:var(--exp)">—</span><span class="s" id="kExpS">&nbsp;</span></div>
     <div class="kpi"><span class="kicker">Net profit</span><span class="v num" id="kNet">—</span><span class="s" id="kNetS">&nbsp;</span></div>
     <div class="kpi"><span class="kicker">Outstanding</span><span class="v num" id="kPend">—</span><span class="s" id="kPendS">&nbsp;</span></div>
   </section>
 
   <section class="panel" id="carryPanel" aria-labelledby="carryTitle" hidden>
-    <div class="panel-head"><h2 id="carryTitle">Carry-overs</h2><span class="kicker">Paid more or less than due</span></div>
+    <div class="panel-head"><h2 id="carryTitle">Reminders</h2><span class="kicker">Unpaid invoices · bills due · carry-overs</span></div>
     <div class="carry-list" id="carryList"></div>
   </section>
 
@@ -197,15 +202,35 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
       <div class="panel-head"><h2 id="formTitle">Add an entry</h2><button class="btn ghost" id="cancelEdit" type="button" hidden>Cancel edit</button></div>
       <form id="entryForm" autocomplete="off">
         <div class="seg" role="group" aria-label="Entry type">
-          <button type="button" data-type="in" aria-pressed="true">Client paid me</button>
-          <button type="button" data-type="out" aria-pressed="false">I paid team</button>
+          <button type="button" data-type="in" aria-pressed="true">Invoice</button>
+          <button type="button" data-type="out" aria-pressed="false">Team payout</button>
+          <button type="button" data-type="expense" aria-pressed="false">Expense</button>
         </div>
         <label for="fParty"><span id="partyLabel">Client</span>
           <input type="text" id="fParty" list="partyList" required maxlength="80" placeholder="e.g. Nordlicht Studio">
           <datalist id="partyList"></datalist>
         </label>
         <div class="row">
-          <label for="fExpected"><span>Amount due <span class="hint">optional</span></span>
+          <label for="fStatus">Status
+            <select id="fStatus"></select>
+          </label>
+          <label for="fDate"><span id="dateLabel">Invoice date</span>
+            <input type="date" id="fDate" required>
+          </label>
+        </div>
+        <div class="row" id="invoiceRow">
+          <label for="fInvoice" id="invoiceWrap"><span>Invoice number <span class="hint">optional</span></span>
+            <input type="text" id="fInvoice" maxlength="40" placeholder="e.g. INV-2026-014">
+          </label>
+          <label for="fDueDate" id="dueWrap"><span>Due date <span class="hint">optional</span></span>
+            <input type="date" id="fDueDate">
+          </label>
+        </div>
+        <label for="fPaidDate" id="paidDateWrap" hidden><span>Received on <span class="hint">if different from the invoice date</span></span>
+          <input type="date" id="fPaidDate">
+        </label>
+        <div class="row">
+          <label for="fExpected" id="expectedWrap"><span><span id="expectedLabel">Amount due</span> <span class="hint">if different</span></span>
             <input type="number" id="fExpected" min="0.01" step="0.01" inputmode="decimal" placeholder="Leave empty if paid in full">
           </label>
           <label for="fAmount"><span id="paidLabel">Amount received</span>
@@ -214,20 +239,12 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
         </div>
         <div class="carry-hint" id="carryHint" hidden></div>
         <div class="carry-hint" id="carrySuggest" hidden></div>
-        <div class="row">
-          <label for="fDate">Date
-            <input type="date" id="fDate" required>
-          </label>
-          <label for="fStatus">Status
-            <select id="fStatus"></select>
-          </label>
-        </div>
         <label for="fCategory"><span id="catLabel">Service</span>
           <input type="text" id="fCategory" list="catList" maxlength="60" placeholder="Optional">
           <datalist id="catList"></datalist>
         </label>
-        <label for="fNote">Note <span class="hint">Invoice number, hours, period covered</span>
-          <input type="text" id="fNote" maxlength="200" placeholder="e.g. INV-2026-014 · September retainer">
+        <label for="fNote"><span>Note <span class="hint" id="noteHint">period covered, hours, details</span></span>
+          <input type="text" id="fNote" maxlength="200" placeholder="e.g. September retainer">
         </label>
         <div class="form-actions">
           <button class="btn primary" id="submitBtn" type="submit" disabled>Save entry</button>
@@ -238,7 +255,7 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
 
     <section class="panel chart" aria-labelledby="chartTitle">
       <div class="panel-head"><h2 id="chartTitle">Last 6 months</h2>
-        <div class="legend"><span><i style="background:var(--in)"></i>Received</span><span><i style="background:var(--out)"></i>Paid out</span><span><i style="background:var(--fg);height:2px;vertical-align:3px"></i>Net</span></div>
+        <div class="legend"><span><i style="background:var(--in)"></i>Received</span><span><i style="background:var(--out)"></i>Team</span><span><i style="background:var(--exp)"></i>Expenses</span><span><i style="background:var(--fg);height:2px;vertical-align:3px"></i>Net</span></div>
       </div>
       <div id="chart"></div>
       <div class="kicker" style="text-transform:none;letter-spacing:.02em">Paid entries only, converted at the ECB rate on each payment date. Pending amounts use today’s rate.</div>
@@ -250,11 +267,12 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
       <h2 id="ledgerTitle">Ledger</h2>
       <div class="tabs" role="group" aria-label="Filter entries" id="tabs">
         <button type="button" data-f="all" aria-pressed="true">All<span class="c" id="cAll"></span></button>
-        <button type="button" data-f="in" aria-pressed="false">Client payments<span class="c" id="cIn"></span></button>
-        <button type="button" data-f="out" aria-pressed="false">Team payouts<span class="c" id="cOut"></span></button>
-        <button type="button" data-f="pending" aria-pressed="false">Pending<span class="c" id="cPend"></span></button>
+        <button type="button" data-f="in" aria-pressed="false">Invoices<span class="c" id="cIn"></span></button>
+        <button type="button" data-f="out" aria-pressed="false">Team<span class="c" id="cOut"></span></button>
+        <button type="button" data-f="expense" aria-pressed="false">Expenses<span class="c" id="cExp"></span></button>
+        <button type="button" data-f="pending" aria-pressed="false">Unpaid<span class="c" id="cPend"></span></button>
       </div>
-      <input type="search" id="search" class="search" placeholder="Search name, note, service">
+      <input type="search" id="search" class="search" placeholder="Search name, invoice, note, category">
     </div>
     <div class="table-wrap">
       <table>
@@ -264,7 +282,7 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
     </div>
     <div class="empty" id="emptyState" hidden>
       <strong>No entries yet</strong>
-      <span>Add a client payment or a team payout with the form above. Everything you save stays here.</span>
+      <span>Add an invoice, a team payout or an expense with the form above. Everything you save stays here.</span>
     </div>
   </section>
 
@@ -277,6 +295,10 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
       <div class="panel-head"><h2>Team</h2><span class="kicker">Paid · due</span></div>
       <div class="plist" id="team"></div>
     </div>
+    <div class="panel">
+      <div class="panel-head"><h2>Expenses</h2><span class="kicker">By category · paid · due</span></div>
+      <div class="plist" id="expenses"></div>
+    </div>
   </section>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -287,10 +309,17 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
   const $ = s => document.querySelector(s);
   const SERVICES = ["Project Management","Website Development","Social Media Management","Content Creation","Photo & Video Editing","Executive Support","Customer Support","Automation Setup","Retainer"];
   const PAYOUTS = ["Monthly salary","Hourly work","Commission","Bonus","Freelance project","Expenses refund"];
+  const EXPENSES = ["Contributions (doprinosi)","Income tax (porez na dohodak)","Profit tax (porez na dobit)","VAT (PDV)","Accounting","Software & subscriptions","Office & rent","Bank fees","Equipment","Marketing","Travel","Other"];
   const STATUS = {
-    in:  [["paid","Received"],["pending","Invoiced, awaiting"]],
-    out: [["paid","Paid"],["pending","Due"]]
+    in:      [["paid","Received"],["pending","Not received yet"]],
+    out:     [["paid","Paid"],["pending","Due"]],
+    expense: [["paid","Paid"],["pending","Due"]]
   };
+  const KIND = {in:"Invoice", out:"Team", expense:"Expense"};
+  const statusLabel = e => (STATUS[e.type]||STATUS.out).find(x=>x[0]===e.status)?.[1] || e.status;
+  // Date the money actually moved (invoices can be received after the invoice date)
+  const cashDate = e => (e.type==="in" && e.status==="paid" && e.paidDate) ? e.paidDate : e.date;
+  function daysUntil(iso){ return Math.round((new Date(iso+"T00:00:00") - new Date(today()+"T00:00:00"))/864e5); }
 
   let entries = [];           // {id, type, party, amount (cents), date, category, status, note, createdAt, updatedAt}
   const CURRENCIES = ["EUR","USD","BAM","GBP","CHF"];
@@ -320,7 +349,7 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
     const d = rateDay(date); const r = d && rateTable[d] && rateTable[d][c];
     return r || null;
   }
-  const rateDate = e => e.status==="paid" ? e.date : today();
+  const rateDate = e => e.status==="paid" ? cashDate(e) : today();
   // Amount of entry e in the display currency (cents), or null if a rate is missing
   function val(e){
     const from = cur(e), to = settings.currency;
@@ -336,7 +365,8 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
     return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
   }
   function carryText(e, c){
-    const amt = fmtC(Math.abs(c), cur(e)), mon = monthLabel(nextMonth(e.date), true).split(" ")[0];
+    const amt = fmtC(Math.abs(c), cur(e)), mon = monthLabel(nextMonth(cashDate(e)), true).split(" ")[0];
+    if(e.type==="expense") return c>0 ? `Paid ${amt} less than due. Pay the rest in ${mon}.` : `Paid ${amt} more than due. Deduct it next time.`;
     if(e.type==="out") return c>0 ? `Underpaid by ${amt}. Add it to the ${mon} payout.` : `Overpaid by ${amt}. Deduct it from the ${mon} payout.`;
     return c>0 ? `Paid ${amt} less than invoiced. Collect it in ${mon}.` : `Paid ${amt} more than invoiced. Credit it on the ${mon} invoice.`;
   }
@@ -397,8 +427,8 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
     if(!res.ok) throw new Error(res.status + " " + text.slice(0,200));
     return text ? JSON.parse(text) : null;
   }
-  const fromRow = r => ({id:r.id, type:r.type, party:r.party, amount:Number(r.amount), date:r.date, category:r.category||"", status:r.status, note:r.note||"", currency:r.currency||"EUR", expected:r.expected==null?null:Number(r.expected), carrySettled:!!r.carry_settled, createdAt:r.created_at, updatedAt:r.updated_at});
-  const toRow = e => ({type:e.type, party:e.party, amount:e.amount, date:e.date, category:e.category||null, status:e.status, note:e.note||null, currency:e.currency||"EUR", expected:e.expected||null});
+  const fromRow = r => ({id:r.id, type:r.type, party:r.party, amount:Number(r.amount), date:r.date, category:r.category||"", status:r.status, note:r.note||"", currency:r.currency||"EUR", expected:r.expected==null?null:Number(r.expected), carrySettled:!!r.carry_settled, invoiceNo:r.invoice_no||"", dueDate:r.due_date||"", paidDate:r.paid_date||"", createdAt:r.created_at, updatedAt:r.updated_at});
+  const toRow = e => ({type:e.type, party:e.party, amount:e.amount, date:e.date, category:e.category||null, status:e.status, note:e.note||null, currency:e.currency||"EUR", expected:e.expected||null, invoice_no:e.invoiceNo||null, due_date:e.dueDate||null, paid_date:e.paidDate||null});
   let lastSig = "";
   async function refresh(){
     const [rows] = await Promise.all([
@@ -420,7 +450,7 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
     try{ await action(); if(okMsg) toast(okMsg); await refresh(); setBanner(""); return true; }
     catch(e){
       console.error(e); render();
-      setBanner(/column|schema cache/i.test(String(e && e.message))
+      setBanner(/column|schema cache|check constraint/i.test(String(e && e.message))
         ? "The database needs an update before this can be saved. In Supabase, run the latest lines at the end of schema.sql (SQL Editor → New query → Run)."
         : "Couldn't save that change. Check your internet connection and try again.", true);
       return false;
@@ -458,8 +488,9 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
   // ---------- period ----------
   function inPeriod(e){
     if(period==="all") return true;
-    if(period.startsWith("y:")) return (e.date||"").startsWith(period.slice(2));
-    return ym(e.date)===period;
+    const d = cashDate(e) || "";
+    if(period.startsWith("y:")) return d.startsWith(period.slice(2));
+    return ym(d)===period;
   }
   function buildPeriods(){
     const sel = $("#period"), prev = sel.value || period;
@@ -477,19 +508,33 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
   function setType(t){
     formType = t;
     document.querySelectorAll(".seg button").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.type===t)));
-    $("#partyLabel").textContent = t==="in" ? "Client" : "Team member";
-    $("#fParty").placeholder = t==="in" ? "e.g. Nordlicht Studio" : "e.g. Ana Petrović";
-    $("#catLabel").textContent = t==="in" ? "Service" : "Payment for";
-    $("#paidLabel").textContent = t==="in" ? "Amount received" : "Amount paid";
-    $("#fExpected").placeholder = t==="in" ? "Invoiced amount" : "Agreed amount";
+    $("#partyLabel").textContent = {in:"Client", out:"Team member", expense:"Paid to"}[t];
+    $("#fParty").placeholder = {in:"e.g. Nordlicht Studio", out:"e.g. Ana Petrović", expense:"e.g. Tax office, Google Workspace"}[t];
+    $("#catLabel").textContent = {in:"Service", out:"Payment for", expense:"Category"}[t];
+    $("#fNote").placeholder = {in:"e.g. September retainer", out:"e.g. September, 32 hours", expense:"e.g. Q3 contributions, reference number"}[t];
     const cur = $("#fStatus").value;
     $("#fStatus").innerHTML = STATUS[t].map(([v,l])=>`<option value="${v}">${l}</option>`).join("");
     if(cur) $("#fStatus").value = cur;
-    $("#catList").innerHTML = (t==="in"?SERVICES:PAYOUTS).map(s=>`<option value="${esc(s)}">`).join("");
+    $("#catList").innerHTML = ({in:SERVICES, out:PAYOUTS, expense:EXPENSES}[t]).map(s=>`<option value="${esc(s)}">`).join("");
     const names = [...new Set(entries.filter(e=>e.type===t).map(e=>e.party))].sort();
     $("#partyList").innerHTML = names.map(n=>`<option value="${esc(n)}">`).join("");
+    syncFormFields();
     if(typeof updateCarryHints==="function") updateCarryHints();
   }
+  // Show the fields that fit the entry type and status
+  function syncFormFields(){
+    const t = formType, paid = $("#fStatus").value==="paid";
+    $("#dateLabel").textContent = t==="in" ? "Invoice date" : (paid ? "Date paid" : "Date");
+    $("#invoiceWrap").hidden = t!=="in";
+    $("#dueWrap").hidden = t!=="in" && paid;   // a due date only matters until it's paid
+    $("#invoiceRow").hidden = $("#invoiceWrap").hidden && $("#dueWrap").hidden;
+    $("#invoiceRow").style.gridTemplateColumns = t==="in" ? "" : "1fr";
+    $("#paidDateWrap").hidden = !(t==="in" && paid);
+    $("#expectedWrap").hidden = !paid;
+    $("#expectedLabel").textContent = t==="in" ? "Invoice amount" : "Amount due";
+    $("#paidLabel").textContent = !paid ? (t==="in" ? "Invoice amount" : "Amount due") : (t==="in" ? "Amount received" : "Amount paid");
+  }
+  $("#fStatus").addEventListener("change", syncFormFields);
   function resetForm(){
     editingId = null;
     $("#entryForm").reset();
@@ -508,6 +553,8 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
     $("#fParty").value = e.party; $("#fAmount").value = (e.amount/100).toFixed(2); $("#fCurrency").value = cur(e); $("#fExpected").value = e.expected ? (e.expected/100).toFixed(2) : "";
     $("#fDate").value = e.date; $("#fCategory").value = e.category||"";
     $("#fStatus").value = e.status; $("#fNote").value = e.note||"";
+    $("#fInvoice").value = e.invoiceNo||""; $("#fDueDate").value = e.dueDate||""; $("#fPaidDate").value = e.paidDate||"";
+    syncFormFields();
     $("#formTitle").textContent = "Edit entry";
     $("#submitBtn").textContent = "Save changes";
     $("#cancelEdit").hidden = false;
@@ -522,10 +569,10 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
     const expected = Math.round(parseFloat($("#fExpected").value)*100);
     const c = $("#fCurrency").value;
     const hint = $("#carryHint");
-    if(amount>0 && expected>0 && amount!==expected && $("#fStatus").value==="paid"){
+    if(amount>0 && expected>0 && amount!==expected && $("#fStatus").value==="paid" && !$("#expectedWrap").hidden){
       const diff = expected - amount, date = $("#fDate").value || today();
       hint.className = "carry-hint " + (diff>0 ? "under" : "over");
-      hint.textContent = carryText({type:formType, currency:c, date}, diff) + " It will show under Carry-overs.";
+      hint.textContent = carryText({type:formType, currency:c, date, status:"paid"}, diff) + " It will show under Reminders.";
       hint.hidden = false;
     } else hint.hidden = true;
     // Offer to fold earlier carry-overs for the same person into this entry
@@ -537,7 +584,7 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
     const months = [...new Set(open.map(e=>monthLabel(ym(e.date),true).split(" ")[0]))].join(", ");
     const already = carryIncluded.length && open.every(e=>carryIncluded.includes(e.id));
     sug.className = "carry-hint " + (total>0 ? "under" : "over");
-    sug.innerHTML = `<span>${esc(open[0].party)}: ${esc(fmtC(Math.abs(total), c))} ${total>0 ? (formType==="out"?"still owed":"still to collect") : "overpaid"} from ${esc(months)}.</span>` +
+    sug.innerHTML = `<span>${esc(open[0].party)}: ${esc(fmtC(Math.abs(total), c))} ${total>0 ? (formType==="in"?"still to collect":"still owed") : "overpaid"} from ${esc(months)}.</span>` +
       (already ? `<span>Included in amount due. Marked settled when you save.</span>`
                : `<button class="btn" type="button" id="includeCarry">${total>0?"Add to":"Subtract from"} amount due</button>`);
     sug.hidden = false;
@@ -558,13 +605,17 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
     const amount = Math.round(parseFloat($("#fAmount").value)*100);
     const party = $("#fParty").value.trim();
     if(!party || !(amount>0) || !$("#fDate").value){ $("#formMsg").textContent="Fill in who, amount and date."; return; }
-    const expRaw = $("#fExpected").value.trim();
+    const isPaid = $("#fStatus").value==="paid";
+    const expRaw = isPaid ? $("#fExpected").value.trim() : "";
     const expected = expRaw ? Math.round(parseFloat(expRaw)*100) : null;
     if(expRaw && !(expected>0)){ $("#formMsg").textContent="Amount due must be more than 0, or leave it empty."; return; }
     const body = {
       type: formType, party, amount, expected: expected && expected!==amount ? expected : null, currency: $("#fCurrency").value, date: $("#fDate").value,
       category: $("#fCategory").value.trim(), status: $("#fStatus").value,
-      note: $("#fNote").value.trim(), updatedAt: new Date().toISOString()
+      note: $("#fNote").value.trim(), updatedAt: new Date().toISOString(),
+      invoiceNo: formType==="in" ? $("#fInvoice").value.trim() : "",
+      dueDate: $("#fDueDate").value || "",
+      paidDate: formType==="in" && isPaid && $("#fPaidDate").value && $("#fPaidDate").value!==$("#fDate").value ? $("#fPaidDate").value : ""
     };
     if(!canWrite) return;
     const btn = $("#submitBtn"); btn.disabled = true; $("#formMsg").textContent = "Saving…";
@@ -575,7 +626,7 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
       : api("/entries", {method:"POST", body:toRow(body), headers:{Prefer:"return=minimal"}}));
       for(const cid of settleIds) await api("/entries?id=eq."+encodeURIComponent(cid), {method:"PATCH", body:{carry_settled:true, updated_at:body.updatedAt}});
     },
-      id ? "Changes saved" : (formType==="in" ? "Client payment saved" : "Team payout saved"));
+      id ? "Changes saved" : ({in:"Invoice saved", out:"Team payout saved", expense:"Expense saved"}[formType]));
     btn.disabled = false;
     $("#formMsg").textContent = ok ? "" : "Not saved yet. Try again.";
     if(ok){ keep("ledger:lastCurrency", body.currency); const keepType = formType; resetForm(); setType(keepType); }
@@ -599,8 +650,7 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
     if(act==="toggle"){
       if(!canWrite) return;
       btn.disabled = true;
-      run(()=>api("/entries?id=eq."+encodeURIComponent(id), {method:"PATCH", body:{status: e.status==="paid"?"pending":"paid", updated_at:new Date().toISOString()}}),
-        e.status==="paid" ? "Marked as pending" : (e.type==="in"?"Marked as received":"Marked as paid"));
+      setPaid(e, e.status!=="paid");
     }
     if(act==="del"){
       if(!pendingDelete.has(id)){
@@ -614,6 +664,14 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
       run(()=>api("/entries?id=eq."+encodeURIComponent(id), {method:"DELETE"}), "Entry deleted");
     }
   });
+
+  function setPaid(e, paid){
+    const body = {status: paid ? "paid" : "pending", updated_at: new Date().toISOString()};
+    // Invoices remember the day the money arrived
+    if(e.type==="in") body.paid_date = paid && today()!==e.date ? today() : null;
+    return run(()=>api("/entries?id=eq."+encodeURIComponent(e.id), {method:"PATCH", body}),
+      !paid ? (e.type==="in" ? "Marked as not received" : "Marked as due") : (e.type==="in" ? "Marked as received" : "Marked as paid"));
+  }
 
   // ---------- backup ----------
   $("#backupBtn").addEventListener("click", ()=>{
@@ -641,48 +699,79 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
     const inPaid = list.filter(e=>e.type==="in"&&e.status==="paid");
     const outPaid = list.filter(e=>e.type==="out"&&e.status==="paid");
     const inPend = list.filter(e=>e.type==="in"&&e.status==="pending");
-    const outPend = list.filter(e=>e.type==="out"&&e.status==="pending");
-    const a=sum(inPaid), b=sum(outPaid), net=a-b;
+    const outPend = list.filter(e=>e.type!=="in"&&e.status==="pending");
+    const expPaid = list.filter(e=>e.type==="expense"&&e.status==="paid");
+    const a=sum(inPaid), b=sum(outPaid), x=sum(expPaid), net=a-b-x;
     $("#kIn").textContent = fmt(a);
-    $("#kInS").textContent = inPaid.length + (inPaid.length===1?" payment":" payments") + " from " + new Set(inPaid.map(e=>e.party)).size + " client" + (new Set(inPaid.map(e=>e.party)).size===1?"":"s");
+    $("#kInS").textContent = inPaid.length + (inPaid.length===1?" invoice paid":" invoices paid") + " by " + new Set(inPaid.map(e=>e.party)).size + " client" + (new Set(inPaid.map(e=>e.party)).size===1?"":"s");
     $("#kOut").textContent = fmt(b);
     $("#kOutS").textContent = outPaid.length + (outPaid.length===1?" payout":" payouts") + " to " + new Set(outPaid.map(e=>e.party)).size + " " + (new Set(outPaid.map(e=>e.party)).size===1?"person":"people");
+    $("#kExp").textContent = fmt(x);
+    const cats = new Set(expPaid.map(e=>e.category||"Other"));
+    $("#kExpS").textContent = expPaid.length ? expPaid.length + (expPaid.length===1?" payment":" payments") + " in " + cats.size + (cats.size===1?" category":" categories") : "No expenses yet";
     const n = $("#kNet"); n.textContent = fmt(net); n.className = "v num " + (net<0?"out":"");
     $("#kNetS").textContent = a>0 ? "Margin " + Math.round(net/a*100) + "%" : "No client income yet";
     const short = t => list.filter(e=>e.type===t && !e.carrySettled && carryOf(e)>0).reduce((s,e)=>s+(val(Object.assign({},e,{amount:carryOf(e)}))||0),0);
-    const awaiting = sum(inPend) + short("in"), owed = sum(outPend) + short("out");
+    const awaiting = sum(inPend) + short("in"), owed = sum(outPend) + short("out") + short("expense");
     $("#kPend").textContent = fmt(awaiting-owed);
     $("#kPendS").textContent = "Awaiting " + fmt(awaiting,{short:1}) + " · owed " + fmt(owed,{short:1});
   }
 
+  function overdueTag(e){
+    if(e.status!=="pending" || !e.dueDate) return "";
+    const d = daysUntil(e.dueDate);
+    if(d>=0) return d<=7 ? `<span class="ctag under" style="cursor:default">${d===0?"Due today":"Due in "+d+"d"}</span>` : "";
+    return `<span class="ctag over" style="cursor:default">Overdue ${-d}d</span>`;
+  }
   function carryTag(e){
     const c = carryOf(e); if(!c) return "";
-    const mon = monthLabel(nextMonth(e.date));
+    const mon = monthLabel(nextMonth(cashDate(e)));
     const cls = e.carrySettled ? "done" : (c>0 ? "under" : "over");
     const label = e.carrySettled ? "Carried over ✓" : `${c>0?"Underpaid":"Overpaid"} ${fmtC(Math.abs(c), cur(e), {short:1})} → ${mon}`;
     const title = `Due ${fmtC(e.expected, cur(e))}, paid ${fmtC(e.amount, cur(e))}. ` + (e.carrySettled ? "Click to reopen." : "Click to mark settled.");
     return `<button class="ctag ${cls}" data-act="carry" data-id="${esc(e.id)}" title="${esc(title)}" ${canWrite?"":"disabled"}>${esc(label)}</button>`;
   }
 
+  function dueBadge(dueDate){
+    if(!dueDate) return {cls:"", text:"No due date"};
+    const d = daysUntil(dueDate);
+    if(d<0) return {cls:"now", text:`Overdue ${-d} ${-d===1?"day":"days"}`};
+    if(d===0) return {cls:"now", text:"Due today"};
+    return {cls: d<=7 ? "now" : "", text:`Due in ${d} ${d===1?"day":"days"}`};
+  }
   function renderCarries(){
-    const open = openCarries().sort((a,b)=>(a.date||"").localeCompare(b.date||""));
-    $("#carryPanel").hidden = !open.length;
+    const items = [];
+    // Invoices not yet paid, and team/expense payments due within a week or overdue
+    entries.filter(e=>e.status==="pending" && (e.type==="in" || (e.dueDate && daysUntil(e.dueDate)<=7))).forEach(e=>{
+      const b = dueBadge(e.dueDate);
+      items.push({sort: e.dueDate || e.date, html:`<div class="carry-item">
+        <div class="what"><strong>${esc(e.party)} <span class="tag" style="margin-left:4px">${KIND[e.type]}</span></strong>
+          <span>${e.type==="in" ? `Invoice ${e.invoiceNo?esc(e.invoiceNo)+" ":""}sent ${esc(fmtDate(e.date))}, not received yet.` : `${esc(e.category||"Payment")} due${e.dueDate?" "+esc(fmtDate(e.dueDate)):""}.`}${e.note?" "+esc(e.note):""}</span></div>
+        <div class="side"><span class="due ${b.cls}">${esc(b.text)}</span>
+          <span class="amt" style="color:${e.type==="in"?"var(--in)":"var(--out)"}">${esc(fmtC(e.amount,cur(e)))}</span>
+          ${canWrite?`<button class="btn" data-act="paid" data-id="${esc(e.id)}">${e.type==="in"?"Mark received":"Mark paid"}</button>`:""}</div>
+      </div>`});
+    });
     const now = ym(today());
-    $("#carryList").innerHTML = open.map(e=>{
-      const c = carryOf(e), target = nextMonth(e.date), due = target <= now;
-      return `<div class="carry-item">
-        <div class="what"><strong>${esc(e.party)} <span class="tag" style="margin-left:4px">${e.type==="in"?"Client":"Team"}</span></strong>
-          <span>${esc(monthLabel(ym(e.date),true))}: due ${esc(fmtC(e.expected,cur(e)))}, ${e.type==="in"?"received":"paid"} ${esc(fmtC(e.amount,cur(e)))}. ${esc(carryText(e,c))}</span></div>
+    openCarries().forEach(e=>{
+      const c = carryOf(e), target = nextMonth(cashDate(e)), due = target <= now;
+      items.push({sort: target+"-01", html:`<div class="carry-item">
+        <div class="what"><strong>${esc(e.party)} <span class="tag" style="margin-left:4px">${KIND[e.type]}</span></strong>
+          <span>${esc(monthLabel(ym(cashDate(e)),true))}: due ${esc(fmtC(e.expected,cur(e)))}, ${e.type==="in"?"received":"paid"} ${esc(fmtC(e.amount,cur(e)))}. ${esc(carryText(e,c))}</span></div>
         <div class="side"><span class="due ${due?"now":""}">${due ? (target===now ? "This month" : "Overdue") : "For " + esc(monthLabel(target,true))}</span>
           <span class="amt" style="color:${c>0?"var(--warn)":"var(--out)"}">${c>0?"+":"−"} ${esc(fmtC(Math.abs(c),cur(e)))}</span>
           ${canWrite?`<button class="btn" data-act="carry" data-id="${esc(e.id)}">Mark settled</button>`:""}</div>
-      </div>`;
-    }).join("");
+      </div>`});
+    });
+    items.sort((a,b)=>a.sort.localeCompare(b.sort));
+    $("#carryPanel").hidden = !items.length;
+    $("#carryList").innerHTML = items.map(x=>x.html).join("");
   }
   $("#carryList").addEventListener("click", ev=>{
-    const b = ev.target.closest("button[data-act=carry]"); if(!b || !canWrite) return;
+    const b = ev.target.closest("button[data-act]"); if(!b || !canWrite) return;
     const e = entries.find(x=>x.id===b.dataset.id); if(!e) return;
     b.disabled = true;
+    if(b.dataset.act==="paid") return setPaid(e, true);
     run(()=>api("/entries?id=eq."+encodeURIComponent(e.id), {method:"PATCH", body:{carry_settled:true, updated_at:new Date().toISOString()}}), "Carry-over marked settled");
   });
 
@@ -691,18 +780,22 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
     $("#cAll").textContent = base.length;
     $("#cIn").textContent = base.filter(e=>e.type==="in").length;
     $("#cOut").textContent = base.filter(e=>e.type==="out").length;
+    $("#cExp").textContent = base.filter(e=>e.type==="expense").length;
     $("#cPend").textContent = base.filter(e=>e.status==="pending").length;
     let list = base.filter(e=> filter==="all" || (filter==="pending" ? e.status==="pending" : e.type===filter));
-    if(query) list = list.filter(e=>[e.party,e.note,e.category].join(" ").toLowerCase().includes(query));
+    if(query) list = list.filter(e=>[e.party,e.note,e.category,e.invoiceNo].join(" ").toLowerCase().includes(query));
     list.sort((x,y)=> (y.date||"").localeCompare(x.date||"") || (y.createdAt||"").localeCompare(x.createdAt||""));
     $("#rows").innerHTML = list.map(e=>{
-      const label = (STATUS[e.type].find(s=>s[0]===e.status)||["",e.status])[1];
+      const label = statusLabel(e);
       const sign = e.type==="in" ? "+" : "−";
-      const details = [e.category, e.note].filter(Boolean).map(esc).join(" · ");
+      const details = [e.invoiceNo ? "№ "+e.invoiceNo : "", e.category, e.note].filter(Boolean).map(esc).join(" · ");
+      const extra = [];
+      if(e.status==="pending" && e.dueDate) extra.push("due " + fmtDate(e.dueDate));
+      if(e.type==="in" && e.status==="paid" && e.paidDate) extra.push("received " + fmtDate(e.paidDate));
       return `<tr>
         <td class="date">${esc(fmtDate(e.date))}</td>
-        <td><span class="who">${esc(e.party)}</span>${carryTag(e)}<div class="note">${e.type==="in"?"Client":"Team"}</div></td>
-        <td class="note">${details||"—"}</td>
+        <td><span class="who">${esc(e.party)}</span>${carryTag(e)}${overdueTag(e)}<div class="note">${KIND[e.type]}</div></td>
+        <td class="note">${details||"—"}${extra.length?`<span class="conv">${esc(extra.join(" · "))}</span>`:""}</td>
         <td><button class="pill ${e.status} ${e.type}" data-act="toggle" data-id="${esc(e.id)}" title="Click to switch status" ${canWrite?"":"disabled"}>${esc(label)}</button></td>
         <td class="amt ${e.type}">${sign} ${esc(fmtC(e.amount, cur(e)))}${e.expected ? `<span class="conv">due ${esc(fmtC(e.expected, cur(e)))}</span>` : ""}${cur(e)!==settings.currency ? `<span class="conv" title="${esc(rateNote(e))}">≈ ${val(e)==null ? "rate unavailable" : esc(fmt(val(e)))}</span>` : ""}</td>
         <td><div class="acts">${canWrite?`<button class="btn ghost" data-act="edit" data-id="${esc(e.id)}">Edit</button><button class="btn ghost" data-act="del" data-id="${esc(e.id)}">Delete</button>`:""}</div></td>
@@ -712,7 +805,7 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
     empty.hidden = list.length>0;
     if(!list.length){
       empty.querySelector("strong").textContent = entries.length ? "Nothing matches" : "No entries yet";
-      empty.querySelector("span").textContent = entries.length ? "Try another period, filter or search." : "Add a client payment or a team payout with the form above. Everything you save stays here.";
+      empty.querySelector("span").textContent = entries.length ? "Try another period, filter or search." : "Add an invoice, a team payout or an expense with the form above. Everything you save stays here.";
     }
   }
 
@@ -720,13 +813,14 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
     function block(type, el, emptyMsg){
       const map = new Map();
       list.filter(e=>e.type===type).forEach(e=>{
-        const p = map.get(e.party) || {paid:0,pending:0,n:0,last:""};
+        const key = type==="expense" ? (e.category||"Other") : e.party;
+        const p = map.get(key) || {paid:0,pending:0,n:0,last:""};
         p[e.status==="paid"?"paid":"pending"] += (val(e)||0); p.n++; if((e.date||"")>p.last) p.last=e.date;
-        map.set(e.party,p);
+        map.set(key,p);
       });
       const rows = [...map.entries()].sort((a,b)=>(b[1].paid+b[1].pending)-(a[1].paid+a[1].pending));
       const max = Math.max(1,...rows.map(r=>r[1].paid+r[1].pending));
-      const col = type==="in" ? "var(--in)" : "var(--out)";
+      const col = {in:"var(--in)", out:"var(--out)", expense:"var(--exp)"}[type];
       el.innerHTML = rows.length ? rows.map(([name,p])=>`<div class="prow">
         <span class="n">${esc(name)}</span><span class="t num">${esc(fmt(p.paid))}</span>
         <div class="bar" aria-hidden="true"><i style="width:${(p.paid/max*100).toFixed(1)}%;background:${col}"></i></div>
@@ -735,6 +829,7 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
     }
     block("in", $("#clients"), "Clients appear here once you log a payment.");
     block("out", $("#team"), "Team members appear here once you log a payout.");
+    block("expense", $("#expenses"), "Expenses appear here by category once you log one.");
   }
 
   function renderChart(){
@@ -744,9 +839,9 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
     const months = [];
     for(let i=5;i>=0;i--){ const d=new Date(y,m-1-i,1); months.push(d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")); }
     const data = months.map(k=>{
-      const es = entries.filter(e=>ym(e.date)===k && e.status==="paid");
-      const a = sum(es.filter(e=>e.type==="in")), b = sum(es.filter(e=>e.type==="out"));
-      return {k,a,b,net:a-b};
+      const es = entries.filter(e=>ym(cashDate(e))===k && e.status==="paid");
+      const a = sum(es.filter(e=>e.type==="in")), t = sum(es.filter(e=>e.type==="out")), x = sum(es.filter(e=>e.type==="expense"));
+      return {k,a,t,x,b:t+x,net:a-t-x};
     });
     const W=640,H=260,L=64,R=12,T=14,B=34;
     const maxV = Math.max(1,...data.map(d=>Math.max(d.a,d.b)));
@@ -768,7 +863,9 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
       const cx = L + gw*i + gw/2, y0 = yS(0);
       const ya = yS(d.a), yb = yS(d.b);
       s += `<rect x="${(cx-bw-2).toFixed(1)}" y="${ya.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0,y0-ya).toFixed(1)}" rx="3" fill="var(--in)"><title>${esc(monthLabel(d.k,true))}: received ${esc(fmt(d.a))}</title></rect>`;
-      s += `<rect x="${(cx+2).toFixed(1)}" y="${yb.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0,y0-yb).toFixed(1)}" rx="3" fill="var(--out)"><title>${esc(monthLabel(d.k,true))}: paid out ${esc(fmt(d.b))}</title></rect>`;
+      const yt = yS(d.t);
+      s += `<rect x="${(cx+2).toFixed(1)}" y="${yt.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0,y0-yt).toFixed(1)}" rx="3" fill="var(--out)"><title>${esc(monthLabel(d.k,true))}: team ${esc(fmt(d.t))}</title></rect>`;
+      if(d.x) s += `<rect x="${(cx+2).toFixed(1)}" y="${yb.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0,yt-yb-1).toFixed(1)}" rx="3" fill="var(--exp)"><title>${esc(monthLabel(d.k,true))}: expenses ${esc(fmt(d.x))}</title></rect>`;
       s += `<text x="${cx.toFixed(1)}" y="${H-12}" text-anchor="middle" font-family="DM Mono, monospace" font-size="11.5" fill="${d.k===end?'var(--fg)':'var(--muted)'}">${esc(monthLabel(d.k))}</text>`;
       pts.push([cx, yS(d.net), d]);
     });
@@ -792,8 +889,8 @@ td.date{font-family:var(--font-m);font-size:13px;color:var(--muted);white-space:
   $("#exportBtn").addEventListener("click", ()=>{
     const list = entries.filter(inPeriod).sort((a,b)=>(a.date||"").localeCompare(b.date||""));
     const q = v => '"' + String(v==null?"":v).replace(/"/g,'""') + '"';
-    const lines = [["Date","Type","Name","Service / payment for","Status","Amount","Currency","Amount due","Difference carried over","Carry-over settled","Amount in "+settings.currency,"Exchange rate","Note"].map(q).join(",")]
-      .concat(list.map(e=>[e.date, e.type==="in"?"Client payment":"Team payout", e.party, e.category, (STATUS[e.type].find(s=>s[0]===e.status)||["",e.status])[1], (e.type==="in"?1:-1)*e.amount/100, cur(e), e.expected ? e.expected/100 : "", carryOf(e) ? carryOf(e)/100 : "", carryOf(e) ? (e.carrySettled?"yes":"no") : "", val(e)==null ? "" : (e.type==="in"?1:-1)*val(e)/100, cur(e)===settings.currency ? "" : rateNote(e), e.note].map(q).join(",")));
+    const lines = [["Date","Type","Name","Invoice number","Due date","Received on","Category / service","Status","Amount","Currency","Amount due","Difference carried over","Carry-over settled","Amount in "+settings.currency,"Exchange rate","Note"].map(q).join(",")]
+      .concat(list.map(e=>[e.date, {in:"Invoice", out:"Team payout", expense:"Expense"}[e.type], e.party, e.invoiceNo, e.dueDate, e.paidDate, e.category, statusLabel(e), (e.type==="in"?1:-1)*e.amount/100, cur(e), e.expected ? e.expected/100 : "", carryOf(e) ? carryOf(e)/100 : "", carryOf(e) ? (e.carrySettled?"yes":"no") : "", val(e)==null ? "" : (e.type==="in"?1:-1)*val(e)/100, cur(e)===settings.currency ? "" : rateNote(e), e.note].map(q).join(",")));
     const label = period==="all" ? "all-time" : period.replace("y:","");
     saveFile(`virtuoso-ledger-${label}.csv`, "\ufeff" + lines.join("\r\n"), "text/csv;charset=utf-8");
     toast("CSV downloaded");
