@@ -15,6 +15,7 @@ create table if not exists public.entries (
   invoice_no  text   check (char_length(invoice_no) <= 40),
   due_date    date,
   paid_date   date,                                         -- when an invoice was actually paid, if not the invoice date
+  fees        bigint check (fees >= 0),                     -- invoices: bank/transfer fees deducted before the money arrived, in cents
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
@@ -55,3 +56,6 @@ alter table public.entries add constraint entries_type_check check (type in ('in
 alter table public.entries add column if not exists invoice_no text check (char_length(invoice_no) <= 40);
 alter table public.entries add column if not exists due_date date;
 alter table public.entries add column if not exists paid_date date;
+
+-- Added later: fees deducted from invoice payments. Safe to re-run.
+alter table public.entries add column if not exists fees bigint check (fees >= 0);
